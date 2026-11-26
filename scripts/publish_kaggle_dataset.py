@@ -7,6 +7,7 @@ import argparse
 import json
 import sys
 import tempfile
+import threading
 import time
 import zipfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -30,6 +31,7 @@ class ParallelDatasetApi(KaggleApi):
     def __init__(self, workers: int) -> None:
         super().__init__()
         self.workers = workers
+        self.log_lock = threading.Lock()
 
     def upload_files(self, request: Any, resources: Any, folder: str,
                      blob_type: Any, upload_context: Any,
@@ -51,14 +53,16 @@ class ParallelDatasetApi(KaggleApi):
             key=lambda path: (-path.stat().st_size, path.name))
 
         def upload(path: Path) -> tuple[str, Any]:
-            print(json.dumps({"upload_started": path.name,
-                              "bytes": path.stat().st_size}), flush=True)
+            with self.log_lock:
+                print(json.dumps({"upload_started": path.name,
+                                  "bytes": path.stat().st_size}), flush=True)
             uploaded = self._upload_file(
                 path.name, str(path), blob_type, upload_context, True, resources)
             if uploaded is None:
                 raise RuntimeError(f"File upload failed: {path.name}")
-            print(json.dumps({"upload_completed": path.name,
-                              "bytes": path.stat().st_size}), flush=True)
+            with self.log_lock:
+                print(json.dumps({"upload_completed": path.name,
+                                  "bytes": path.stat().st_size}), flush=True)
             return path.name, self._new_file(uploaded)
 
         files = {}
