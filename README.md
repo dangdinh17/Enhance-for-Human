@@ -31,7 +31,7 @@ See THIRD_PARTY_NOTICES.md for source attribution and original video rights.
 ## Kaggle setup
 
 Use Python3.10+ and a working matched PyTorch/torchvision pair. Attach the dataset,
-enable a GPU, then open notebooks/train_kaggle.ipynb or run:
+enable a GPU, then open notebooks/train_kaggle.ipynb for one QP per notebook, or run:
 
     git clone https://github.com/dangdinh17/Enhance-for-Human.git
     cd Enhance-for-Human
@@ -44,6 +44,16 @@ The first bootstrap reads all LMDB bytes to verify SHA-256, then attaches them
 with symlinks. LMDBs remain on read-only Kaggle Input; no second73.70GiB copy
 is created. Later calls reuse verification only while the bundle checksum
 and current local file identities match.
+
+## One QP per Kaggle notebook
+
+Use notebooks/train_kaggle.ipynb and set `QP` to 22, 27, 32 or 37.
+Each notebook schedules one QP: a two-update smoke and a 300k main run.
+The matching campaigns are `newqe_kaggle_qp22_charb_300k_v1`,
+`newqe_kaggle_qp27_charb_300k_v1`, `newqe_kaggle_qp32_charb_300k_v1`,
+and `newqe_kaggle_qp37_charb_300k_v1`. Each requires its own explicit approval.
+Main logs/checkpoints are under `runs/research/<campaign>/QP<qp>/`.
+Bootstrap verifies all five LMDBs; training uses only the selected QP.
 
 ## Checks and bounded smoke
 
@@ -64,7 +74,8 @@ CPU smoke does not qualify a GPU production environment.
 
 ## Main training: explicit opt-in
 
-Bootstrap never starts main training. The notebook defaults to RUN_MAIN=False.
+Bootstrap never starts main training. The notebook starts main in its explicit
+approval/training cell.
 Kaggle-profile smoke is also required because approval is bound to that profile.
 
     researchctl --profile kaggle validate
@@ -74,7 +85,8 @@ Kaggle-profile smoke is also required because approval is bound to that profile.
     researchctl --profile kaggle approve --campaign newqe_kaggle_charb_300k_v1 --stage main
     researchctl --profile kaggle run --campaign newqe_kaggle_charb_300k_v1 --until main
 
-The four runs execute sequentially on GPU0. Main requires full validation and
+The four-QP campaign above executes sequentially on GPU0. The notebook uses a
+separate single-QP campaign. Main requires full validation and
 rejects smoke validation limits. Logs, checkpoints and receipts are stored under
 runs/research/newqe_kaggle_charb_300k_v1/QP*/. The portable campaign does not
 invoke JDE, tracking or full-video test. Kaggle logs to CSV; Comet is disabled
