@@ -41,12 +41,20 @@ def main() -> None:
     api.authenticate()
     if dataset.split("/")[0] != api.get_config_value("username"):
         raise ValueError("Authenticated Kaggle owner does not match dataset")
-    owned = api.dataset_list(mine=True, page=1)
+    owned = []
+    for page in range(1, 1001):
+        rows = api.dataset_list(mine=True, page=page) or []
+        owned.extend(rows)
+        if len(rows) < 20:
+            break
+    else:
+        raise RuntimeError("Could not enumerate owned datasets safely")
+    owned_refs = {record.ref for record in owned}
     preflight = {
         "dataset": dataset, "public": True, "upload_bytes": sum(expected.values()),
         "largest_file_bytes": max(expected.values()),
-        "owned_datasets_first_page": len(owned),
-        "owned_bytes_first_page": sum(d.total_bytes for d in owned),
+        "owned_datasets": len(owned),
+        "owned_bytes": sum(d.total_bytes for d in owned),
         "storage_quota": "Not exposed by Kaggle SDK; enforced by server on upload/create",
         "bundle_sha256": file_sha256(folder / "bundle.json"),
     }
@@ -56,7 +64,11 @@ def main() -> None:
     try:
         api.dataset_status(dataset)
     except HTTPError as error:
-        if error.response is None or error.response.status_code != 404:
+        # Kaggle returns 403 as well as 404 for a dataset that does not exist.
+        # An owned dataset with denied status must never be recreated.
+        if (error.response is None
+                or error.response.status_code not in {403, 404}
+                or dataset in owned_refs):
             raise
         exists = False
     if not exists:
