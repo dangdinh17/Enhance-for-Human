@@ -1,6 +1,6 @@
 # Keep the Kaggle-provided torch/torchvision pair when its CPU/CUDA ops work.
-torch>=2.5,<3
-torchvision>=0.20,<1
+torch>=2.4.1,<3
+torchvision>=0.19.1,<1
 numpy>=1.26,<3
 opencv-python-headless>=4.8,<5
 lmdb>=1.4,<3
