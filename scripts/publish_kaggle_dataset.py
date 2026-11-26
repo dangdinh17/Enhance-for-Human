@@ -9,7 +9,9 @@ import sys
 import tempfile
 import time
 import zipfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+from typing import Any
 
 from kaggle.api.kaggle_api_extended import KaggleApi
 from kagglesdk.datasets.types.dataset_api_service import ApiGetDatasetRequest
@@ -22,12 +24,59 @@ from src.utils.experiment import atomic_write_json
 from src.utils.hashing import file_sha256
 
 
+class ParallelDatasetApi(KaggleApi):
+    """Upload independent flat files with bounded, resumable SDK workers."""
+
+    def __init__(self, workers: int) -> None:
+        super().__init__()
+        self.workers = workers
+
+    def upload_files(self, request: Any, resources: Any, folder: str,
+                     blob_type: Any, upload_context: Any,
+                     quiet: bool = False, dir_mode: str = "skip") -> None:
+        """Retain SDK tokens and context cleanup; only file transport is parallel."""
+        if self.workers == 1:
+            return super().upload_files(request, resources, folder, blob_type,
+                                        upload_context, quiet, dir_mode)
+        if dir_mode != "skip":
+            raise ValueError("Parallel dataset publication requires flat files")
+        skipped = {
+            self.DATASET_METADATA_FILE, self.OLD_DATASET_METADATA_FILE,
+            *self.DATASET_COVER_IMAGE_FILES, self.KERNEL_METADATA_FILE,
+            self.MODEL_METADATA_FILE, self.MODEL_INSTANCE_METADATA_FILE,
+        }
+        paths = sorted(
+            (path for path in Path(folder).iterdir()
+             if path.is_file() and path.name not in skipped),
+            key=lambda path: (-path.stat().st_size, path.name))
+
+        def upload(path: Path) -> tuple[str, Any]:
+            print(json.dumps({"upload_started": path.name,
+                              "bytes": path.stat().st_size}), flush=True)
+            uploaded = self._upload_file(
+                path.name, str(path), blob_type, upload_context, True, resources)
+            if uploaded is None:
+                raise RuntimeError(f"File upload failed: {path.name}")
+            print(json.dumps({"upload_completed": path.name,
+                              "bytes": path.stat().st_size}), flush=True)
+            return path.name, self._new_file(uploaded)
+
+        files = {}
+        with ThreadPoolExecutor(max_workers=self.workers) as pool:
+            futures = [pool.submit(upload, path) for path in paths]
+            for future in as_completed(futures):
+                name, uploaded = future.result()
+                files[name] = uploaded
+        request.files.extend(files[name] for name in sorted(files))
+
+
 def main() -> None:
     """Use Kaggle's resumable uploader; never silently overwrite a dataset."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--folder", type=Path, required=True)
     parser.add_argument("--receipt", type=Path, required=True)
     parser.add_argument("--verify-only", action="store_true")
+    parser.add_argument("--workers", type=int, default=4, choices=range(1, 5))
     args = parser.parse_args()
     folder = args.folder.resolve()
     metadata = json.loads((folder / "dataset-metadata.json").read_text())
@@ -37,7 +86,7 @@ def main() -> None:
         raise ValueError("Dataset publication identity mismatch")
     expected = {p.name: p.stat().st_size for p in folder.iterdir()
                 if p.is_file() and p.name != "dataset-metadata.json"}
-    api = KaggleApi()
+    api = ParallelDatasetApi(args.workers)
     api.authenticate()
     if dataset.split("/")[0] != api.get_config_value("username"):
         raise ValueError("Authenticated Kaggle owner does not match dataset")
@@ -57,6 +106,7 @@ def main() -> None:
         "owned_bytes": sum(d.total_bytes for d in owned),
         "storage_quota": "Not exposed by Kaggle SDK; enforced by server on upload/create",
         "bundle_sha256": file_sha256(folder / "bundle.json"),
+        "upload_workers": args.workers,
     }
     atomic_write_json(args.receipt.with_name("upload_preflight.json"), preflight)
     print(json.dumps({"preflight": preflight}), flush=True)
