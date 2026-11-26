@@ -6,10 +6,13 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import tempfile
 import time
+import zipfile
 from pathlib import Path
 
 from kaggle.api.kaggle_api_extended import KaggleApi
+from kagglesdk.datasets.types.dataset_api_service import ApiGetDatasetRequest
 from requests.exceptions import HTTPError
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -88,12 +91,28 @@ def main() -> None:
             break
     if remote != expected:
         raise ValueError(f"Remote filenames/sizes differ: expected={expected}, actual={remote}")
+    request = ApiGetDatasetRequest()
+    request.owner_slug, request.dataset_slug = dataset.split("/")
+    with api.build_kaggle_client() as client:
+        published = client.datasets.dataset_api_client.get_dataset(request)
+    if published.is_private:
+        raise ValueError("Dataset exists but is not public")
+    with tempfile.TemporaryDirectory(prefix="human-kaggle-verify-") as temporary:
+        api.dataset_download_file(dataset, "bundle.json", path=temporary,
+                                  force=True, quiet=True)
+        downloaded = Path(temporary) / "bundle.json"
+        if not downloaded.exists():
+            archive = Path(temporary) / "bundle.json.zip"
+            with zipfile.ZipFile(archive) as zipped:
+                downloaded.write_bytes(zipped.read("bundle.json"))
+        if file_sha256(downloaded) != preflight["bundle_sha256"]:
+            raise ValueError("Published bundle receipt checksum differs")
     atomic_write_json(args.receipt, {
         "status": "complete", "dataset": dataset,
         "url": f"https://www.kaggle.com/datasets/{dataset}",
-        "version": state["current_version_number"], "public_requested": True,
+        "version": state["current_version_number"], "public_verified": True,
         "bundle_sha256": preflight["bundle_sha256"], "verified_files": remote,
-        "remote_verification": "Kaggle ready status and exact filenames/byte sizes",
+        "remote_verification": "Ready, public, exact names/sizes, downloaded bundle.json SHA-256",
         "content_verification": "Local SHA-256 in bundle.json; bootstrap verifies downloaded content",
     })
     print(json.dumps({"status": "complete", "receipt": str(args.receipt)}), flush=True)
