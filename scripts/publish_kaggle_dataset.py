@@ -78,6 +78,28 @@ class ParallelDatasetApi(KaggleApi):
         request.files.extend(files[name] for name in sorted(files))
 
 
+def get_published_dataset(api: KaggleApi, dataset: str) -> Any:
+    """Read dataset metadata without the separately restricted status API."""
+    request = ApiGetDatasetRequest()
+    request.owner_slug, request.dataset_slug = dataset.split("/")
+    with api.build_kaggle_client() as client:
+        return client.datasets.dataset_api_client.get_dataset(request)
+
+
+def get_published_files(api: KaggleApi, dataset: str) -> dict[str, int]:
+    """Enumerate every published file, including paginated bundles."""
+    remote, page = {}, None
+    while True:
+        response = api.dataset_list_files(dataset, page_token=page, page_size=200)
+        if response.error_message:
+            raise RuntimeError(response.error_message)
+        for record in response.dataset_files:
+            remote[record.name] = record.total_bytes
+        page = response.next_page_token
+        if not page:
+            return remote
+
+
 def main() -> None:
     """Use Kaggle's resumable uploader; never silently overwrite a dataset."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -120,15 +142,13 @@ def main() -> None:
     print(json.dumps({"preflight": preflight}), flush=True)
     exists = True
     try:
-        api.dataset_status(dataset)
+        get_published_dataset(api, dataset)
     except HTTPError as error:
-        # Kaggle returns 403 as well as 404 for a dataset that does not exist.
-        # An owned dataset with denied status must never be recreated.
+        # Never recreate an owned dataset if metadata is temporarily restricted.
         if (error.response is None
-                or error.response.status_code not in {403, 404}
-                or dataset in owned_refs):
+                or error.response.status_code not in {403, 404}):
             raise
-        exists = False
+        exists = dataset in owned_refs
     if not exists:
         if args.verify_only:
             raise ValueError("Dataset does not exist yet")
@@ -140,31 +160,29 @@ def main() -> None:
             "status": "processing", "dataset": dataset, "url": response.url,
             "bundle_sha256": preflight["bundle_sha256"]})
     for attempt in range(240):
-        state = json.loads(api.dataset_status(dataset, format="json"))
-        print(json.dumps({"remote": state, "attempt": attempt}), flush=True)
-        if state["status"] in {"ready", "complete"}:
+        # GetDatasetStatus can return 403 for a successfully published dataset.
+        # Require available metadata and every expected file instead; the
+        # receipt download below independently verifies actual serving.
+        try:
+            published = get_published_dataset(api, dataset)
+            remote = get_published_files(api, dataset)
+        except HTTPError as error:
+            if (error.response is None
+                    or error.response.status_code not in {403, 404}):
+                raise
+            print(json.dumps({"remote": "processing", "attempt": attempt,
+                              "http_status": error.response.status_code}), flush=True)
+            time.sleep(30)
+            continue
+        print(json.dumps({"remote_files": len(remote), "attempt": attempt,
+                          "version": published.current_version_number}), flush=True)
+        if remote == expected and published.current_version_number > 0:
             break
-        if state["status"] in {"error", "failed"}:
-            raise RuntimeError(f"Kaggle processing failed: {state['status']}")
+        if args.verify_only:
+            raise ValueError(f"Remote filenames/sizes differ: expected={expected}, actual={remote}")
         time.sleep(30)
     else:
         raise TimeoutError("Dataset processing exceeded two hours; rerun --verify-only")
-    remote, page = {}, None
-    while True:
-        response = api.dataset_list_files(dataset, page_token=page, page_size=200)
-        if response.error_message:
-            raise RuntimeError(response.error_message)
-        for record in response.dataset_files:
-            remote[record.name] = record.total_bytes
-        page = response.next_page_token
-        if not page:
-            break
-    if remote != expected:
-        raise ValueError(f"Remote filenames/sizes differ: expected={expected}, actual={remote}")
-    request = ApiGetDatasetRequest()
-    request.owner_slug, request.dataset_slug = dataset.split("/")
-    with api.build_kaggle_client() as client:
-        published = client.datasets.dataset_api_client.get_dataset(request)
     if published.is_private:
         raise ValueError("Dataset exists but is not public")
     with tempfile.TemporaryDirectory(prefix="human-kaggle-verify-") as temporary:
@@ -180,9 +198,9 @@ def main() -> None:
     atomic_write_json(args.receipt, {
         "status": "complete", "dataset": dataset,
         "url": f"https://www.kaggle.com/datasets/{dataset}",
-        "version": state["current_version_number"], "public_verified": True,
+        "version": published.current_version_number, "public_verified": True,
         "bundle_sha256": preflight["bundle_sha256"], "verified_files": remote,
-        "remote_verification": "Ready, public, exact names/sizes, downloaded bundle.json SHA-256",
+        "remote_verification": "Public version available, exact names/sizes, downloaded bundle.json SHA-256",
         "content_verification": "Local SHA-256 in bundle.json; bootstrap verifies downloaded content",
     })
     print(json.dumps({"status": "complete", "receipt": str(args.receipt)}), flush=True)
