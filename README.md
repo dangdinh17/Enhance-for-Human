@@ -109,3 +109,15 @@ preflight fails if the host lacks required isolation support. Credentials,
 dataset files, generated manifests, checkpoints, approvals and conversation
 diagnostics are excluded from Git. Reusable entry points stay in scripts/;
 one-off helpers belong in scripts/temp/<run>/.
+
+## Dataset publication tools
+
+Publication dependencies are separate from training dependencies:
+
+    python -m pip install -r requirements-publish.txt
+
+scripts/package_training_bundle.py exports verified existing lab LMDBs without
+encoding. scripts/publish_kaggle_dataset.py uses Kaggle's resumable uploader,
+requests public visibility explicitly, then checks processing status, visibility,
+filenames, byte sizes and the downloaded bundle receipt. Credentials are read
+from Kaggle's user-private configuration and are never bundled.
