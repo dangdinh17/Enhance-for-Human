@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "status": "complete",
+  "scope": "train_validation",
+  "dataset_id": "anginhok/enhance-for-human-mfqe-vvc-trainval-qp22-37",
+  "qps": [
+    22,
+    27,
+    32,
+    37
+  ],
+  "databases": {
+    "gt": {
+      "filename": "gt.mdb",
+      "sha256": "6165e9d863f3a49cdac0755d45c9a993155b016cfe26165e820333137a6e61c4",
+      "bytes": 3810906112,
+      "kind": "gt",
+      "qp": null,
+      "entries": 5947,
+      "verified_keys": 5947,
+      "verified_png_headers": 252
+    },
+    "lq_QP22": {
+      "filename": "lq_QP22.mdb",
+      "sha256": "09b28d0de8dba4f7de37fa8f74c826220b6294df1554a973f7dcc3ee6a80e538",
+      "bytes": 20094201856,
+      "kind": "lq",
+      "qp": 22,
+      "entries": 38389,
+      "verified_keys": 38389,
+      "verified_png_headers": 252
+    },
+    "lq_QP27": {
+      "filename": "lq_QP27.mdb",
+      "sha256": "ee5a2eb8e12eba04dd9f4aec39aaf6049b2f877cdd0fbf24f5ff5d400d8e2d7f",
+      "bytes": 19316539392,
+      "kind": "lq",
+      "qp": 27,
+      "entries": 38389,
+      "verified_keys": 38389,
+      "verified_png_headers": 252
+    },
+    "lq_QP32": {
+      "filename": "lq_QP32.mdb",
+      "sha256": "8f43afa33cfcfd13ef2e92f7cbf62cce1aca688c437fdb823b9288bbd5646c3b",
+      "bytes": 18459000832,
+      "kind": "lq",
+      "qp": 32,
+      "entries": 38389,
+      "verified_keys": 38389,
+      "verified_png_headers": 252
+    },
+    "lq_QP37": {
+      "filename": "lq_QP37.mdb",
+      "sha256": "334c2bcdd849b1b5cf3755b44e7f0f4b26feb23280b79c9505af1962c3def945",
+      "bytes": 17443676160,
+      "kind": "lq",
+      "qp": 37,
+      "entries": 38389,
+      "verified_keys": 38389,
+      "verified_png_headers": 252
+    }
+  },
+  "manifests": {
+    "22": {
+      "filename": "QP22.json",
+      "sha256": "6f45428f363b1830fd7663889be999447704fda4818f1aa3cbe06300dbfc0f8e"
+    },
+    "27": {
+      "filename": "QP27.json",
+      "sha256": "4d466e7920007fdea41155ad5e6b85deb9be1b446211279a7040a598fbb04ce9"
+    },
+    "32": {
+      "filename": "QP32.json",
+      "sha256": "c94ffa420d6396163644f6a480df384ba89bdf127db70472ae46cd032612d1e1"
+    },
+    "37": {
+      "filename": "QP37.json",
+      "sha256": "1bf2d9042ce3298574920127706410fca2b48621b64d6d2330338b1d53a6d579"
+    }
+  },
+  "contract_sha256": "3100674758f40e8b362363a6caa6fde7e0674a07a67c3aea01f2badde25d8568",
+  "train_windows_per_qp": 5407,
+  "validation_samples_per_qp": 540,
+  "validation_overlap": "First 30 frames of each test18 sequence",
+  "full_test18_included": false,
+  "source_ready_sha256": "ad6c916e54e49942c0cb9f490f14c3944617ad0e30ba6a418344b48df6c2cf9a",
+  "codec": {
+    "name": "VVC",
+    "configuration": "randomaccess_faster",
+    "frame_rate": 50,
+    "bit_depth": 8
+  }
+}

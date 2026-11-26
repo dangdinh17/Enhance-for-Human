@@ -22,7 +22,10 @@ python -m pip install -q -r requirements.txt
 python -B scripts/bootstrap_kaggle.py
 ```
 
-Default Kaggle paths are assumed. Bootstrap verifies all five LMDB checksums
+Bootstrap finds the matching dataset under `/kaggle/input`, including nested
+mount paths. If it is missing, use **Add Input** to attach the public dataset
+linked above. You can also pass `--dataset-root /path/to/bundle-folder`.
+Bootstrap verifies all five LMDB checksums
 on first use, reading approximately 73.70 GiB, then creates read-only data links.
 LMDB data stays on Kaggle Input. Repeated bootstrap calls reuse verification
 while the bundle checksum and local file identities match.
