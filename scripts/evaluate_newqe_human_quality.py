@@ -6,7 +6,6 @@ import argparse
 import csv
 import json
 import math
-import os
 import statistics
 import sys
 from pathlib import Path
@@ -107,9 +106,9 @@ def write_csv(path: Path, rows: list[dict[str, Any]]) -> None:
 def publish(output: Path, scope: str, paths: list[Path],
             metrics: dict[str, Any] | None = None,
             baseline: dict[str, Any] | None = None) -> None:
-    """Return normalized researchctl artifacts without starting other jobs."""
+    """Write result evidence bound to the local dataset contract."""
     atomic_write_json(output, {"status": "complete", "scope": scope,
-        "dataset_fingerprint": os.environ["RESEARCHCTL_DATASET_HASH"],
+        "dataset_fingerprint": file_sha256(ROOT / "data/dataset_contract.json"),
         "metrics": metrics or {},
         "artifacts": {f"artifact_{i}": str(p.resolve()) for i, p in enumerate(paths)},
         **({"baseline": baseline} if baseline else {})})
@@ -219,7 +218,7 @@ def aggregate(output: Path) -> None:
 
 
 def main() -> None:
-    """Dispatch only inference and reporting through researchctl."""
+    """Dispatch inference and reporting without starting training."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=("verify", "smoke", "evaluate", "aggregate"))
     parser.add_argument("--config", type=Path)

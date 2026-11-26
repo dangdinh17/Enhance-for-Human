@@ -73,7 +73,7 @@ def verify(directory: Path) -> Path:
 
 
 def main() -> None:
-    """Run only when scheduled as a bounded researchctl GPU task."""
+    """Run a bounded diagnostic on a GPU and save checkpoint evidence."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-root", type=Path, required=True)
     args = parser.parse_args()

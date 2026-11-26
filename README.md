@@ -1,135 +1,125 @@
 # Enhance for Human
 
-New QE accepts seven adjacent luma frames [B,7,1,H,W] and enhances the current
-frame [B,1,H,W]. Its 449,253 parameters implement a shared encoder, key-feature
+New QE takes seven adjacent luma frames `[B,7,1,H,W]` and enhances the current
+frame `[B,1,H,W]`. Its 449,253 parameters implement a shared encoder, key-feature
 selection, three-branch aggregation, alignment, gated fusion, reconstruction
-and an input residual. Training uses pure Charbonnier; there is no JDE backbone.
+and an input residual.
 
-Four scratch models: QP22/27/32/37, seeds29/34/39/44, 300,000 successful updates
-each. Batch8, crop128, Adam LR1e-4, AMP retry up to8, gradient clipping1.
-Crops and augmentation are synchronized across seven inputs and their target;
-epoch sampling shuffles without replacement and drops incomplete batches.
+Each Kaggle notebook trains **one QP**: 22, 27, 32 or 37. Training calls the
+trainer directly; no orchestration package or approval command is required.
 
-**Best checkpoint:** highest mean validation PSNR-Y (enhanced_psnr/max).
-Validation uses all540 samples/QP every2000 updates and at the final update.
-Loss remains logged. last.pt every1000 updates includes optimizer, scaler,
-RNG, best-selection state and exact sampler position.
+## Kaggle: setup once
 
-## Dataset
+Add the [public dataset](https://www.kaggle.com/datasets/anginhok/enhance-for-human-mfqe-vvc-trainval-qp22-37),
+enable GPU and Internet, then run this notebook cell:
 
-[Public Kaggle training dataset](https://www.kaggle.com/datasets/anginhok/enhance-for-human-mfqe-vvc-trainval-qp22-37)
-contains GT and four LQ LMDBs, manifests and checksums, approximately73.70GiB.
-Each QP has5407 train windows from108 sequences and540 validation samples
-from18 sequences. Stored pixels are lossless8-bit PNG-Y. VVC reconstruction
-uses randomaccess_faster at50fps and QP22/27/32/37.
+```bash
+%%bash
+set -e
+git clone https://github.com/dangdinh17/Enhance-for-Human.git /kaggle/working/Enhance-for-Human
+cd /kaggle/working/Enhance-for-Human
+python -m pip install -q -r requirements.txt
+python -B scripts/bootstrap_kaggle.py
+```
 
-**Validation overlap:** the first30 frames of each test18 sequence are used
-for checkpoint selection; this is not an independent held-out benchmark.
-Full test18 (7980frames/QP), YUV videos and historical weights are excluded.
-See THIRD_PARTY_NOTICES.md for source attribution and original video rights.
+Default Kaggle paths are assumed. Bootstrap verifies all five LMDB checksums
+on first use, reading approximately 73.70 GiB, then creates read-only data links.
+LMDB data stays on Kaggle Input. Repeated bootstrap calls reuse verification
+while the bundle checksum and local file identities match.
 
-## Kaggle setup
+## Train the selected QP
 
-Use Python3.10+ and a working matched PyTorch/torchvision pair. Attach the dataset,
-enable a GPU, then open notebooks/train_kaggle.ipynb for one QP per notebook, or run:
+Change only `QP` in the next cell:
 
-    git clone https://github.com/dangdinh17/Enhance-for-Human.git
-    cd Enhance-for-Human
-    python -m pip install -r requirements.txt
-    python -m pip install -e tools/researchctl
-    python -B scripts/bootstrap_kaggle.py
+```bash
+%%bash
+set -e
+QP=22
+cd /kaggle/working/Enhance-for-Human
+python -u scripts/train_mfqev2_window.py --config "configs/kaggle/QP${QP}.yml" --device cuda:0
+```
 
-Supply --dataset-root if Kaggle mounts the dataset at another location.
-The first bootstrap reads all LMDB bytes to verify SHA-256, then attaches them
-with symlinks. LMDBs remain on read-only Kaggle Input; no second73.70GiB copy
-is created. Later calls reuse verification only while the bundle checksum
-and current local file identities match.
+The ready-made notebook is [notebooks/train_kaggle.ipynb](notebooks/train_kaggle.ipynb).
+Python 3.10+ and a matched PyTorch/torchvision CUDA pair are required.
 
-## One QP per Kaggle notebook
+| QP | Seed | Successful optimizer updates |
+|---|---:|---:|
+| 22 | 29 | 300,000 |
+| 27 | 34 | 300,000 |
+| 32 | 39 | 300,000 |
+| 37 | 44 | 300,000 |
 
-Use notebooks/train_kaggle.ipynb and set `QP` to 22, 27, 32 or 37.
-Each notebook schedules one QP: a two-update smoke and a 300k main run.
-The matching campaigns are `newqe_kaggle_qp22_charb_300k_v1`,
-`newqe_kaggle_qp27_charb_300k_v1`, `newqe_kaggle_qp32_charb_300k_v1`,
-and `newqe_kaggle_qp37_charb_300k_v1`. Each requires its own explicit approval.
-Main logs/checkpoints are under `runs/research/<campaign>/QP<qp>/`.
-Bootstrap verifies all five LMDBs; training uses only the selected QP.
+All models start from scratch in a new run directory. Training uses pure
+Charbonnier loss with epsilon 1e-6, without a JDE backbone. Batch size is 8,
+crop size is 128, Adam LR is fixed at 1e-4, AMP retries the same batch up to
+8 times, and gradient clipping uses norm 1. Crops and augmentation are
+synchronized across all seven inputs and the target. Epoch sampling shuffles
+without replacement and drops incomplete batches. CSV logging is enabled;
+Comet is disabled in Kaggle configs.
 
-## Checks and bounded smoke
+**Best checkpoint:** highest mean validation PSNR-Y (`enhanced_psnr/max`).
+All 540 validation samples are evaluated every 2,000 updates and at the end.
+Training logs every 100 updates and saves `last.pt` every 1,000 updates.
 
-All experiment scheduling uses researchctl. Smoke metrics and checkpoints are
-diagnostics, never research results or initialization for main training.
+## Outputs and resume
 
-    researchctl --profile smoke status
-    researchctl --profile smoke validate
-    researchctl --profile smoke plan --campaign newqe_kaggle_charb_300k_v1
-    researchctl --profile smoke preflight --campaign newqe_kaggle_charb_300k_v1
-    researchctl --profile smoke run --campaign newqe_kaggle_charb_300k_v1 --until smoke
+For QP22, outputs are under:
 
-Smoke runs two updates/QP, reloads after update1 and validates eight real samples.
-For a CPU-only check, substitute campaign newqe_kaggle_cpu_smoke_v1 above.
-CPU smoke does not qualify a GPU production environment.
+```text
+runs/research/newqe_kaggle_charb_300k_v1/QP22/
+├── checkpoints/best.pth
+├── checkpoints/last.pt
+├── train.csv
+├── validation.csv
+├── config.resolved.yaml
+├── STARTED.json
+└── DONE.json  # created only when all 300k updates finish
+```
 
-    python -B -m unittest discover -s tests -v
+Each other QP uses its own directory. Rerunning the same training command
+resumes `last.pt` automatically, restoring model, optimizer, scaler, RNG,
+checkpoint selection and sampler position. Changed config/data/source is
+rejected. Stop gracefully to save the current state; abrupt termination loses
+updates since the last saved checkpoint.
 
-## Main training: explicit opt-in
+Before ending a Kaggle session, save the entire selected run directory.
+In the next session, restore it at the same project path, use the same commit
+and dependency versions, run setup/bootstrap, then run the same training cell.
+Do not overwrite existing checkpoints when starting a different experiment.
 
-Bootstrap never starts main training. The notebook starts main in its explicit
-approval/training cell.
-Kaggle-profile smoke is also required because approval is bound to that profile.
+## Dataset and validation limits
 
-    researchctl --profile kaggle validate
-    researchctl --profile kaggle plan --campaign newqe_kaggle_charb_300k_v1
-    researchctl --profile kaggle preflight --campaign newqe_kaggle_charb_300k_v1
-    researchctl --profile kaggle run --campaign newqe_kaggle_charb_300k_v1 --until smoke
-    researchctl --profile kaggle approve --campaign newqe_kaggle_charb_300k_v1 --stage main
-    researchctl --profile kaggle run --campaign newqe_kaggle_charb_300k_v1 --until main
+GT and four LQ LMDBs contain lossless 8-bit PNG-Y frames. Each QP has 5,407
+training windows from 108 sequences and 540 validation samples from 18
+sequences. VVC reconstruction uses randomaccess_faster at 50 fps and
+QP22/27/32/37. See THIRD_PARTY_NOTICES.md for source attribution and video rights.
 
-The four-QP campaign above executes sequentially on GPU0. The notebook uses a
-separate single-QP campaign. Main requires full validation and
-rejects smoke validation limits. Logs, checkpoints and receipts are stored under
-runs/research/newqe_kaggle_charb_300k_v1/QP*/. The portable campaign does not
-invoke JDE, tracking or full-video test. Kaggle logs to CSV; Comet is disabled
-by default. No API credentials are included.
+**Validation overlap:** the first 30 frames per test18 sequence are used for
+checkpoint selection; this is not an independent held-out benchmark. Full
+test18 (7,980 frames/QP), YUV videos and historical weights are excluded from
+the Kaggle bundle. Training does not run tracking or full-video evaluation.
 
-## Stop, preserve and resume
+## Tests
 
-Before ending a session, cancel gracefully, then save/download runs/:
+After attaching the real dataset:
 
-    researchctl --profile kaggle cancel --campaign newqe_kaggle_charb_300k_v1
+```bash
+python -B -m unittest discover -s tests -v
+```
 
-Keep the exact repository commit, dependency versions, metadata and checkpoints.
-Restore runs/ at the same project path in a later session, rerun bootstrap, then:
+Bounded smoke checks are diagnostic, never research quality results. Local
+GPU/notebook execution remains unverified when the NVIDIA driver is unavailable.
+Original lab datasets, contracts, checkpoints and runs are preserved separately.
 
-    researchctl --profile kaggle resume --campaign newqe_kaggle_charb_300k_v1 --until main
+## Dataset publication
 
-Resume restores optimizer, scaler, RNG and sampler; incompatible source/config/
-data is rejected. Environment changes may require renewed preflight, smoke and
-approval. Abrupt session termination loses updates since the last durable save.
-The notebook can archive runs/ for download.
+Publication dependencies are separate from training:
 
-## Local provenance
+```bash
+python -m pip install -r requirements-publish.txt
+```
 
-The original local-data verifier is retained. Portable verification is selected
-only by dataset.bundle_receipt in configs/kaggle/. Historical lab runs are
-untouched. Local campaign definitions are archived under
-.research/campaigns/legacy/ because they need lab source videos and old runs.
-The portable release discovers only the two Kaggle campaigns.
-
-Bundled researchctl retains explicit approval and Linux isolation checks;
-preflight fails if the host lacks required isolation support. Credentials,
-dataset files, generated manifests, checkpoints, approvals and conversation
-diagnostics are excluded from Git. Reusable entry points stay in scripts/;
-one-off helpers belong in scripts/temp/<run>/.
-
-## Dataset publication tools
-
-Publication dependencies are separate from training dependencies:
-
-    python -m pip install -r requirements-publish.txt
-
-scripts/package_training_bundle.py exports verified existing lab LMDBs without
-encoding. scripts/publish_kaggle_dataset.py uses Kaggle's resumable uploader,
-requests public visibility explicitly, then checks processing status, visibility,
-filenames, byte sizes and the downloaded bundle receipt. Credentials are read
-from Kaggle's user-private configuration and are never bundled.
+`scripts/package_training_bundle.py` exports existing verified LMDBs without
+encoding. `scripts/publish_kaggle_dataset.py` uploads the public bundle and
+verifies metadata, filenames, sizes and the downloaded bundle receipt checksum.
+Credentials are read from private Kaggle configuration and are never bundled.

@@ -230,7 +230,7 @@ data/manifests/
 data/source_inventory.json
 runs/
 outputs/
-.research/.state/
+.research/
 .env
 data/bundle.json
 data/bundle_verified.json

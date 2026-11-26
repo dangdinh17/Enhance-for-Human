@@ -1,5 +1,0 @@
-schema_version: "1.0"
-metric_contract:
-  primary: {name: validation.loss, direction: minimize}
-  secondary: []
-  validation: {reject_nan: true, reject_infinite: true}

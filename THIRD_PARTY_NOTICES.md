@@ -10,7 +10,5 @@ The Kaggle dataset retains the source video rights and links the original
 MFQEv2 dataset page and paper. VVC reconstruction was generated separately;
 this repository does not redistribute a VVenC executable.
 
-The bundled researchctl source is the lab's version 0.2.1, copied from the
-existing Enhance_for_Machine tooling. It retains its source and package metadata.
 Torch, torchvision, NumPy, OpenCV, LMDB and other runtime dependencies retain
 their respective upstream licenses.

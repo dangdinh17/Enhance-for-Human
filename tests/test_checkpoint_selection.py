@@ -18,14 +18,13 @@ ROOT = Path(__file__).resolve().parents[1]
 class CheckpointSelectionTests(unittest.TestCase):
     """Verify PSNR ranking, config inheritance and resume policy safety."""
 
-    def test_all_qp_configs_and_metric_contract_select_psnr(self) -> None:
-        for qp in (22, 27, 32, 37):
-            config = load_yaml_mapping(ROOT / f"configs/newqe/QP{qp}.yml")
-            self.assertEqual(CheckpointSelection.from_config(config),
-                             CheckpointSelection("enhanced_psnr", "max"))
-        metrics = load_yaml_mapping(ROOT / ".research/metrics.yaml")
-        self.assertEqual(metrics["metric_contract"]["primary"],
-                         {"name": "validation.psnr_y", "direction": "maximize"})
+    def test_all_local_and_kaggle_qp_configs_select_psnr(self) -> None:
+        for folder in ("newqe", "kaggle"):
+            for qp in (22, 27, 32, 37):
+                with self.subTest(folder=folder, qp=qp):
+                    config = load_yaml_mapping(ROOT / f"configs/{folder}/QP{qp}.yml")
+                    self.assertEqual(CheckpointSelection.from_config(config),
+                                     CheckpointSelection("enhanced_psnr", "max"))
 
     def test_psnr_wins_when_recorded_loss_ranks_differently(self) -> None:
         path = (ROOT / "runs/research/newqe_charb_300k_qp22_37_v1"
