@@ -35,11 +35,15 @@ class ParallelDatasetApi(KaggleApi):
 
     def upload_files(self, request: Any, resources: Any, folder: str,
                      blob_type: Any, upload_context: Any,
-                     quiet: bool = False, dir_mode: str = "skip") -> None:
+                     quiet: bool = False, dir_mode: str = "skip",
+                     ignore_patterns: list[str] | None = None) -> None:
         """Retain SDK tokens and context cleanup; only file transport is parallel."""
         if self.workers == 1:
             return super().upload_files(request, resources, folder, blob_type,
-                                        upload_context, quiet, dir_mode)
+                                        upload_context, quiet, dir_mode,
+                                        ignore_patterns=ignore_patterns)
+        if ignore_patterns:
+            raise ValueError("Bundle publication requires every declared file")
         if dir_mode != "skip":
             raise ValueError("Parallel dataset publication requires flat files")
         skipped = {
