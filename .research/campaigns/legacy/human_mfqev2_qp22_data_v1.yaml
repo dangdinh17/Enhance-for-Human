@@ -1,0 +1,55 @@
+schema_version: '1.0'
+matrix: {}
+config_contract:
+  seed: seed
+  name: name
+  run_dir: run_dir
+allowed_change_scope:
+- seed
+- name
+- run_dir
+- train.iterations
+- train.validate_every
+- train.checkpoint_every
+- dataset.workers
+bindings:
+  run_dir: '{trial.output_dir}/experiment'
+  name: '{trial.variant}_{trial.id}'
+dataset_manifests:
+- data/dataset_contract.json
+- data/source_inventory.json
+selection:
+  source_stage: smoke
+  mode: all
+campaign:
+  id: human_mfqev2_qp22_data_v1
+  title: Verified QP22 VVenC videos and streaming luma LMDB
+variants:
+- id: qp22_data
+  seeds:
+  - 7
+  base_config: configs/qp22_data.yml
+stages:
+  smoke: {}
+  main:
+    preserve_config: true
+pipeline:
+- id: preflight
+  kind: campaign
+  task: unit_tests
+- id: sources
+  purpose: preparation
+  kind: campaign
+  task: verify_sources
+- id: runtime
+  purpose: smoke
+  kind: campaign
+  task: verify_runtime
+- id: smoke
+  purpose: smoke
+  kind: trials
+  task: data_smoke
+- id: main
+  kind: trials
+  task: prepare_qp22
+  requires_approval: true

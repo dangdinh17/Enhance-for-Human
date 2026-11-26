@@ -1,0 +1,10 @@
+base_config: base.yml
+name: NewQE_Human_Charbonnier_QP27_300k_v1
+qp: 27
+seed: 34
+run_dir: runs/research/newqe_charb_300k_qp22_37_v1/QP27
+dataset:
+  manifests:
+  - data/manifests/QP27.json
+comet_logging:
+  experiment_key: a00435003130c5079f9c8fae04e1a6b0

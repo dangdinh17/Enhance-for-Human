@@ -1,0 +1,7 @@
+base_config: ../newqe/base.yml
+dataset:
+  completion: data/bundle.json
+  bundle_receipt: data/bundle.json
+  workers: 4
+comet_logging:
+  using: false

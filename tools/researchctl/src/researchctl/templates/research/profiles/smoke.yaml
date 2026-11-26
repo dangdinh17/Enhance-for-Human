@@ -1,0 +1,4 @@
+schema_version: "1.0"
+execution: {max_stage: smoke}
+project: {comet: {enabled: false}}
+resources: {resources: {max_node_gb: 5}}

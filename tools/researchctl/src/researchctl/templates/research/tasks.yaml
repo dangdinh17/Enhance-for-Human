@@ -1,0 +1,33 @@
+schema_version: "1.0"
+tasks:
+  unit_tests:
+    executor: host
+    argv: ["{runtime.python}", "-m", "unittest", "discover", "-s", "tests"]
+    timeout_seconds: 1800
+    resources: {gpu_count: 0}
+  train:
+    executor: host
+    argv: ["{runtime.python}", "scripts/train.py", "--config", "{trial.config}"]
+    timeout_seconds: 86400
+    network: comet
+    resources: {gpu_count: 1, gpu: 0}
+    outputs:
+      required: ["{trial.model_run_dir}/DONE.json"]
+    collectors:
+      - type: done_json
+        path: "{trial.model_run_dir}/DONE.json"
+        metrics: {validation.loss: checkpoint_selection.best_value}
+  evaluate:
+    executor: host
+    argv: ["{runtime.python}", "scripts/evaluate.py", "--config", "{trial.config}", "--output", "{trial.output_dir}/task_result.json"]
+    timeout_seconds: 86400
+    resources: {gpu_count: 1, gpu: 0}
+    collectors: [{type: result_json, path: "{trial.output_dir}/task_result.json"}]
+    result_contract: {path: "{trial.output_dir}/task_result.json", scope: evaluation}
+  aggregate:
+    executor: host
+    argv: ["{runtime.python}", "scripts/aggregate.py", "--inputs", "{runtime.inputs}", "--output", "{trial.output_dir}/task_result.json"]
+    timeout_seconds: 1800
+    resources: {gpu_count: 0}
+    collectors: [{type: result_json, path: "{trial.output_dir}/task_result.json"}]
+    result_contract: {path: "{trial.output_dir}/task_result.json", scope: aggregate}

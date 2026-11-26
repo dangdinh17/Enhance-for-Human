@@ -1,0 +1,42 @@
+schema_version: '1.0'
+matrix: {}
+config_contract:
+  seed: seed
+  name: name
+  run_dir: run_dir
+allowed_change_scope:
+- seed
+- name
+- run_dir
+bindings:
+  name: '{trial.variant}_{trial.id}'
+  run_dir: '{trial.output_dir}/diagnostic'
+dataset_manifests:
+- data/dataset_contract.json
+- data/source_inventory.json
+- runs/research/newqe_charb_300k_qp22_37_v1/QP22/DONE.json
+- runs/research/newqe_charb_300k_qp22_37_v1/QP27/DONE.json
+- runs/research/newqe_charb_300k_qp22_37_v1/QP32/DONE.json
+- runs/research/newqe_charb_300k_qp22_37_v1/QP37/DONE.json
+selection:
+  source_stage: smoke
+  mode: all
+campaign:
+  id: newqe_dataset_diagnostic_20261126
+  title: Bounded read-only data/quantization/temporal diagnostics; no training
+variants:
+- id: four_qps
+  seeds:
+  - 29
+  base_config: configs/diagnostics/newqe_dataset_20261126.yml
+stages:
+  smoke: {}
+pipeline:
+- id: preflight
+  kind: campaign
+  purpose: preparation
+  task: unit_tests
+- id: smoke
+  kind: trials
+  purpose: smoke
+  task: newqe_dataset_diagnostic_smoke

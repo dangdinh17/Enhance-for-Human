@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "planned_qps": [
+    22,
+    27,
+    32,
+    37
+  ],
+  "frames_per_test_qp": 7980,
+  "train_windows_per_qp": 5407,
+  "validation_samples_per_qp": 540,
+  "manifest_sha256": {
+    "22": "6f45428f363b1830fd7663889be999447704fda4818f1aa3cbe06300dbfc0f8e",
+    "27": "4d466e7920007fdea41155ad5e6b85deb9be1b446211279a7040a598fbb04ce9",
+    "32": "c94ffa420d6396163644f6a480df384ba89bdf127db70472ae46cd032612d1e1",
+    "37": "1bf2d9042ce3298574920127706410fca2b48621b64d6d2330338b1d53a6d579"
+  }
+}

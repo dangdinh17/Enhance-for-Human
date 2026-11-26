@@ -1,0 +1,8 @@
+schema_version: "1.0"
+resources:
+  max_parallel_nodes: 1
+  default_gpu: 0
+  default_timeout_seconds: 3600
+  max_node_gb: 20
+  stop_before_disk_full_gb: 20
+  rlimits: {max_processes: 256, max_open_files: 2048}

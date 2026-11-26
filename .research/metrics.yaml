@@ -1,0 +1,13 @@
+schema_version: '1.0'
+metric_contract:
+  primary:
+    name: validation.psnr_y
+    direction: maximize
+  secondary:
+  - name: validation.total_loss
+    direction: minimize
+  validation:
+    reject_nan: true
+    reject_infinite: true
+    require_baseline: true
+    require_dataset_manifest_match: true

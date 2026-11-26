@@ -1,0 +1,40 @@
+dataset:
+  sampling: epoch_shuffle
+  crop_size: 128
+  batch_size: 8
+  workers: 4
+  completion: outputs/research/datasets/mfqev2_qp22_v1/READY.json
+network:
+  radius: 3
+  selection: true
+  fusion: alignment_gated
+  reconstruction_blocks: 4
+  coarse_bound: 8.0
+  fine_bound: 4.0
+  fusion_offset_bound: 4.0
+loss:
+  charbonnier_epsilon: 1.0e-06
+optimizer:
+  lr: 0.0001
+  betas:
+  - 0.9
+  - 0.999
+  eps: 1.0e-08
+train:
+  checkpoint_selection:
+    metric: enhanced_psnr
+    mode: max
+  iterations: 300000
+  mixed_precision: true
+  gradient_clip_norm: 1.0
+  log_every: 100
+  validate_every: 2000
+  checkpoint_every: 1000
+inference:
+  tile_core: 256
+  halo: 96
+comet_logging:
+  using: true
+  project_name: enhance-for-human
+  workspace: dangdinh17
+  api_key_env: COMET_API_KEY

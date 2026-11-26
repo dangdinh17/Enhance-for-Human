@@ -1,0 +1,134 @@
+schema_version: '1.0'
+tasks:
+  unit_tests:
+    executor: host
+    argv:
+    - '{runtime.python}'
+    - -B
+    - -m
+    - unittest
+    - discover
+    - -s
+    - tests
+    timeout_seconds: 600
+    max_output_gb: 2
+    network: deny
+    resources:
+      gpu_count: 0
+      shared_memory: true
+  portable_verify:
+    executor: host
+    argv:
+    - '{runtime.python}'
+    - -B
+    - scripts/researchctl_portable.py
+    - verify
+    - --output
+    - '{trial.output_dir}/task_result.json'
+    timeout_seconds: 3600
+    max_output_gb: 2
+    network: deny
+    resources:
+      gpu_count: 0
+      shared_memory: true
+    collectors:
+    - type: result_json
+      path: '{trial.output_dir}/task_result.json'
+    result_contract:
+      path: '{trial.output_dir}/task_result.json'
+      scope: preparation
+  portable_cpu_smoke:
+    executor: host
+    argv:
+    - '{runtime.python}'
+    - -B
+    - scripts/researchctl_portable.py
+    - smoke
+    - --config
+    - '{trial.config}'
+    - --device
+    - cpu
+    - --output
+    - '{trial.output_dir}/task_result.json'
+    timeout_seconds: 3600
+    max_output_gb: 2
+    network: deny
+    resources:
+      gpu_count: 0
+      shared_memory: true
+    collectors:
+    - type: result_json
+      path: '{trial.output_dir}/task_result.json'
+    result_contract:
+      path: '{trial.output_dir}/task_result.json'
+      scope: smoke
+      primary_metric: true
+    outputs:
+      required:
+      - '{trial.model_run_dir}/DONE.json'
+      - '{trial.model_run_dir}/checkpoints/best.pth'
+      - '{trial.model_run_dir}/checkpoints/last.pt'
+  portable_gpu_smoke:
+    executor: host
+    argv:
+    - '{runtime.python}'
+    - -B
+    - scripts/researchctl_portable.py
+    - smoke
+    - --config
+    - '{trial.config}'
+    - --device
+    - cuda:0
+    - --output
+    - '{trial.output_dir}/task_result.json'
+    timeout_seconds: 3600
+    max_output_gb: 2
+    network: deny
+    resources:
+      gpu_count: 1
+      shared_memory: true
+      gpu: 0
+    collectors:
+    - type: result_json
+      path: '{trial.output_dir}/task_result.json'
+    result_contract:
+      path: '{trial.output_dir}/task_result.json'
+      scope: smoke
+      primary_metric: true
+    outputs:
+      required:
+      - '{trial.model_run_dir}/DONE.json'
+      - '{trial.model_run_dir}/checkpoints/best.pth'
+      - '{trial.model_run_dir}/checkpoints/last.pt'
+  portable_train:
+    executor: host
+    argv:
+    - '{runtime.python}'
+    - -B
+    - scripts/researchctl_portable.py
+    - train
+    - --config
+    - '{trial.config}'
+    - --device
+    - cuda:0
+    - --output
+    - '{trial.output_dir}/task_result.json'
+    timeout_seconds: 604800
+    max_output_gb: 4
+    network: deny
+    resources:
+      gpu_count: 1
+      shared_memory: true
+      gpu: 0
+    collectors:
+    - type: result_json
+      path: '{trial.output_dir}/task_result.json'
+    result_contract:
+      path: '{trial.output_dir}/task_result.json'
+      scope: training
+      primary_metric: true
+    outputs:
+      required:
+      - '{trial.model_run_dir}/DONE.json'
+      - '{trial.model_run_dir}/checkpoints/best.pth'
+      - '{trial.model_run_dir}/checkpoints/last.pt'

@@ -1,0 +1,79 @@
+schema_version: '1.0'
+matrix: {}
+config_contract:
+  seed: seed
+  name: name
+  run_dir: run_dir
+allowed_change_scope:
+- seed
+- name
+- run_dir
+- train.iterations
+- train.validate_every
+- train.checkpoint_every
+- dataset.workers
+bindings:
+  run_dir: '{trial.output_dir}/experiment'
+  name: '{trial.variant}_{trial.id}'
+dataset_manifests:
+- data/dataset_contract.json
+- data/source_inventory.json
+- data/reference_receipts/QP27.json
+- data/reference_receipts/QP32.json
+- data/reference_receipts/QP37.json
+selection:
+  source_stage: smoke
+  mode: all
+campaign:
+  id: newqe_charb_300k_qp22_37_v1
+  title: Four scratch New QE models with pure Charbonnier, 300k each
+variants:
+- id: qp22
+  seeds:
+  - 29
+  base_config: configs/newqe/QP22.yml
+- id: qp27
+  seeds:
+  - 34
+  base_config: configs/newqe/QP27.yml
+- id: qp32
+  seeds:
+  - 39
+  base_config: configs/newqe/QP32.yml
+- id: qp37
+  seeds:
+  - 44
+  base_config: configs/newqe/QP37.yml
+stages:
+  smoke:
+    overrides:
+      train.iterations: 2
+      train.validate_every: 2
+      train.checkpoint_every: 2
+      dataset.workers: 4
+  main:
+    preserve_config: true
+pipeline:
+- id: preflight
+  kind: campaign
+  task: unit_tests
+- id: dataset
+  purpose: preparation
+  kind: campaign
+  task: verify_dataset
+- id: smoke
+  purpose: smoke
+  kind: trials
+  task: train_window_smoke
+- id: main
+  kind: trials
+  task: train_window
+  requires_approval: true
+- id: evaluate
+  purpose: evaluation
+  kind: trials
+  uses: main
+  task: evaluate_window
+- id: aggregate
+  kind: campaign
+  task: aggregate

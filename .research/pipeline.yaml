@@ -1,0 +1,15 @@
+schema_version: '1.0'
+pipeline:
+  stages:
+  - id: dataset
+    purpose: preparation
+    kind: campaign
+    task: portable_verify
+  - id: smoke
+    purpose: smoke
+    kind: trials
+    task: portable_gpu_smoke
+  - id: main
+    kind: trials
+    task: portable_train
+    requires_approval: true

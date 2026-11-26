@@ -1,0 +1,17 @@
+{
+  "source": "QP37 validation.csv from completed local 300k Charbonnier run; measurements retained for selection regression only",
+  "rows": [
+    {
+      "iteration": "282000",
+      "qp": "37",
+      "total_loss": "0.01934018277183727",
+      "enhanced_psnr": "31.52991431907371"
+    },
+    {
+      "iteration": "292000",
+      "qp": "37",
+      "total_loss": "0.019341120537784365",
+      "enhanced_psnr": "31.534208198829933"
+    }
+  ]
+}

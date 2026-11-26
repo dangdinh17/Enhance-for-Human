@@ -1,0 +1,13 @@
+name: newqe_dataset_diagnostic
+seed: 29
+run_dir: runs/research/newqe_dataset_diagnostic_20261126
+qps:
+- 22
+- 27
+- 32
+- 37
+frames_per_sequence: 2
+sequences:
+- BQSquare_416x240_600
+- Kimono_1920x1080_240
+- BasketballDrive_1920x1080_500

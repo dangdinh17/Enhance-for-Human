@@ -1,0 +1,65 @@
+schema_version: '1.0'
+matrix: {}
+config_contract:
+  seed: seed
+  name: name
+  run_dir: run_dir
+allowed_change_scope:
+- seed
+- name
+- run_dir
+- train.iterations
+- train.validate_every
+- train.checkpoint_every
+- train.validation_max_samples
+- dataset.workers
+bindings:
+  run_dir: '{trial.output_dir}/experiment'
+  name: '{trial.variant}_{trial.id}'
+dataset_manifests:
+- data/dataset_contract.json
+- data/bundle.json
+- data/manifests/QP22.json
+- data/manifests/QP27.json
+- data/manifests/QP32.json
+- data/manifests/QP37.json
+selection:
+  source_stage: smoke
+  mode: all
+variants:
+- id: qp22
+  seeds:
+  - 29
+  base_config: configs/kaggle/QP22.yml
+- id: qp27
+  seeds:
+  - 34
+  base_config: configs/kaggle/QP27.yml
+- id: qp32
+  seeds:
+  - 39
+  base_config: configs/kaggle/QP32.yml
+- id: qp37
+  seeds:
+  - 44
+  base_config: configs/kaggle/QP37.yml
+stages:
+  smoke:
+    overrides:
+      train.iterations: 2
+      train.validate_every: 2
+      train.checkpoint_every: 1
+      train.validation_max_samples: 8
+      dataset.workers: 0
+pipeline:
+- id: dataset
+  purpose: preparation
+  kind: campaign
+  task: portable_verify
+- id: smoke
+  purpose: smoke
+  kind: trials
+  task: portable_cpu_smoke
+campaign:
+  id: newqe_kaggle_cpu_smoke_v1
+  title: 'CPU diagnostic only: four QPs, two updates and resume'

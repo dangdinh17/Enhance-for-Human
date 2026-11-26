@@ -1,0 +1,5 @@
+name: newqe_human_quality_qp32
+seed: 39
+qp: 32
+run_dir: runs/research/newqe_charb_human_quality_test18_v1/QP32
+checkpoint_run_dir: runs/research/newqe_charb_300k_qp22_37_v1/QP32

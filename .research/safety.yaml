@@ -1,0 +1,28 @@
+schema_version: '1.0'
+execution:
+  shell_commands_allowed: false
+  kill_process_group_on_timeout: true
+  gpu_container_supported: false
+filesystem:
+  dataset_read_only: true
+  allow_posix_shm: true
+  allow_proc_runtime: true
+  writable_roots:
+  - runs/research
+  - outputs/research
+  - /tmp/researchctl-enhance-for-human
+  forbidden_write_paths:
+  - .git
+  - data
+  - .research/safety.yaml
+  - .research/resources.yaml
+network:
+  default: deny
+  comet_tasks:
+  - train_window
+approval:
+  required_stages:
+  - main
+publication:
+  automatic_submission: false
+  require_human_approval: true

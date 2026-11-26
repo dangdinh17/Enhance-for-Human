@@ -1,0 +1,342 @@
+schema_version: '1.0'
+tasks:
+  unit_tests:
+    executor: host
+    argv:
+    - '{runtime.python}'
+    - -B
+    - -m
+    - unittest
+    - discover
+    - -s
+    - tests
+    timeout_seconds: 600
+    max_output_gb: 2
+    network: deny
+    resources:
+      gpu_count: 0
+      shared_memory: true
+  verify_sources:
+    executor: host
+    argv:
+    - '{runtime.python}'
+    - -B
+    - scripts/researchctl_adapter.py
+    - sources
+    - --output
+    - '{trial.output_dir}/task_result.json'
+    timeout_seconds: 900
+    max_output_gb: 10
+    network: deny
+    resources:
+      gpu_count: 0
+    collectors:
+    - type: result_json
+      path: '{trial.output_dir}/task_result.json'
+    result_contract:
+      path: '{trial.output_dir}/task_result.json'
+      scope: preparation
+  data_smoke:
+    executor: host
+    argv:
+    - '{runtime.python}'
+    - -B
+    - scripts/researchctl_adapter.py
+    - data_smoke
+    - --output
+    - '{trial.output_dir}/task_result.json'
+    timeout_seconds: 1800
+    max_output_gb: 5
+    network: deny
+    resources:
+      gpu_count: 0
+    collectors:
+    - type: result_json
+      path: '{trial.output_dir}/task_result.json'
+    result_contract:
+      path: '{trial.output_dir}/task_result.json'
+      scope: smoke
+  prepare_qp22:
+    executor: host
+    argv:
+    - '{runtime.python}'
+    - -B
+    - scripts/researchctl_adapter.py
+    - data_full
+    - --output
+    - '{trial.output_dir}/task_result.json'
+    timeout_seconds: 172800
+    max_output_gb: 140
+    network: deny
+    resources:
+      gpu_count: 0
+    collectors:
+    - type: result_json
+      path: '{trial.output_dir}/task_result.json'
+    result_contract:
+      path: '{trial.output_dir}/task_result.json'
+      scope: preparation
+    writable_paths:
+    - '{paths.outputs}/datasets/mfqev2_qp22_v1'
+  verify_dataset:
+    executor: host
+    argv:
+    - '{runtime.python}'
+    - -B
+    - scripts/researchctl_adapter.py
+    - dataset
+    - --output
+    - '{trial.output_dir}/task_result.json'
+    timeout_seconds: 900
+    max_output_gb: 10
+    network: deny
+    resources:
+      gpu_count: 0
+    collectors:
+    - type: result_json
+      path: '{trial.output_dir}/task_result.json'
+    result_contract:
+      path: '{trial.output_dir}/task_result.json'
+      scope: preparation
+  train_window_smoke:
+    executor: host
+    argv:
+    - '{runtime.python}'
+    - -B
+    - scripts/researchctl_adapter.py
+    - train_smoke
+    - --config
+    - '{trial.config}'
+    - --output
+    - '{trial.output_dir}/task_result.json'
+    timeout_seconds: 3600
+    max_output_gb: 10
+    network: deny
+    resources:
+      gpu_count: 1
+      gpu: 0
+      shared_memory: true
+    collectors:
+    - type: result_json
+      path: '{trial.output_dir}/task_result.json'
+    result_contract:
+      path: '{trial.output_dir}/task_result.json'
+      scope: smoke
+      primary_metric: true
+    outputs:
+      required:
+      - '{trial.model_run_dir}/DONE.json'
+      - '{trial.model_run_dir}/checkpoints/best.pth'
+      - '{trial.model_run_dir}/checkpoints/last.pt'
+  train_window:
+    executor: host
+    argv:
+    - '{runtime.python}'
+    - -B
+    - scripts/researchctl_adapter.py
+    - train
+    - --config
+    - '{trial.config}'
+    - --output
+    - '{trial.output_dir}/task_result.json'
+    timeout_seconds: 604800
+    max_output_gb: 20
+    network: comet
+    resources:
+      gpu_count: 1
+      gpu: 0
+      shared_memory: true
+    collectors:
+    - type: result_json
+      path: '{trial.output_dir}/task_result.json'
+    result_contract:
+      path: '{trial.output_dir}/task_result.json'
+      scope: training
+      primary_metric: true
+    outputs:
+      required:
+      - '{trial.model_run_dir}/DONE.json'
+      - '{trial.model_run_dir}/checkpoints/best.pth'
+      - '{trial.model_run_dir}/checkpoints/last.pt'
+  evaluate_window:
+    executor: host
+    argv:
+    - '{runtime.python}'
+    - -B
+    - scripts/researchctl_adapter.py
+    - evaluate
+    - --config
+    - '{trial.config}'
+    - --output
+    - '{trial.output_dir}/task_result.json'
+    timeout_seconds: 604800
+    max_output_gb: 10
+    network: deny
+    resources:
+      gpu_count: 1
+      gpu: 0
+      shared_memory: true
+    collectors:
+    - type: result_json
+      path: '{trial.output_dir}/task_result.json'
+    result_contract:
+      path: '{trial.output_dir}/task_result.json'
+      scope: full_video
+    writable_paths:
+    - '{paths.outputs}/newqe_charb_300k_qp22_37_v1/test18'
+  aggregate:
+    executor: host
+    argv:
+    - '{runtime.python}'
+    - -B
+    - scripts/researchctl_adapter.py
+    - aggregate
+    - --output
+    - '{trial.output_dir}/task_result.json'
+    timeout_seconds: 1800
+    max_output_gb: 10
+    network: deny
+    resources:
+      gpu_count: 0
+    collectors:
+    - type: result_json
+      path: '{trial.output_dir}/task_result.json'
+    result_contract:
+      path: '{trial.output_dir}/task_result.json'
+      scope: aggregate
+    writable_paths:
+    - '{paths.outputs}/newqe_charb_300k_qp22_37_v1/test18'
+  verify_runtime:
+    executor: host
+    argv:
+    - '{runtime.python}'
+    - -B
+    - scripts/researchctl_adapter.py
+    - runtime
+    - --output
+    - '{trial.output_dir}/task_result.json'
+    timeout_seconds: 900
+    max_output_gb: 2
+    network: deny
+    resources:
+      gpu_count: 1
+      gpu: 0
+      shared_memory: true
+    collectors:
+    - type: result_json
+      path: '{trial.output_dir}/task_result.json'
+    result_contract:
+      path: '{trial.output_dir}/task_result.json'
+      scope: smoke
+  human_quality_verify:
+    executor: host
+    argv:
+    - '{runtime.python}'
+    - -B
+    - scripts/evaluate_newqe_human_quality.py
+    - verify
+    - --output
+    - '{trial.output_dir}/task_result.json'
+    timeout_seconds: 1800
+    max_output_gb: 2
+    network: deny
+    resources:
+      gpu_count: 0
+    collectors:
+    - type: result_json
+      path: '{trial.output_dir}/task_result.json'
+    result_contract:
+      path: '{trial.output_dir}/task_result.json'
+      scope: preparation
+  human_quality_smoke:
+    executor: host
+    argv:
+    - '{runtime.python}'
+    - -B
+    - scripts/evaluate_newqe_human_quality.py
+    - smoke
+    - --config
+    - '{trial.config}'
+    - --output
+    - '{trial.output_dir}/task_result.json'
+    timeout_seconds: 1800
+    max_output_gb: 2
+    network: deny
+    resources:
+      gpu_count: 1
+      gpu: 0
+    collectors:
+    - type: result_json
+      path: '{trial.output_dir}/task_result.json'
+    result_contract:
+      path: '{trial.output_dir}/task_result.json'
+      scope: smoke
+  human_quality_evaluate:
+    executor: host
+    argv:
+    - '{runtime.python}'
+    - -B
+    - scripts/evaluate_newqe_human_quality.py
+    - evaluate
+    - --config
+    - '{trial.config}'
+    - --output
+    - '{trial.output_dir}/task_result.json'
+    timeout_seconds: 86400
+    max_output_gb: 2
+    network: deny
+    resources:
+      gpu_count: 1
+      gpu: 0
+    collectors:
+    - type: result_json
+      path: '{trial.output_dir}/task_result.json'
+    result_contract:
+      path: '{trial.output_dir}/task_result.json'
+      scope: full_video
+    writable_paths:
+    - '{paths.outputs}/newqe_charb_300k_qp22_37_v1/test18/NewQE_Charbonnier_300k'
+  human_quality_aggregate:
+    executor: host
+    argv:
+    - '{runtime.python}'
+    - -B
+    - scripts/evaluate_newqe_human_quality.py
+    - aggregate
+    - --output
+    - '{trial.output_dir}/task_result.json'
+    timeout_seconds: 1800
+    max_output_gb: 2
+    network: deny
+    resources:
+      gpu_count: 0
+    collectors:
+    - type: result_json
+      path: '{trial.output_dir}/task_result.json'
+    result_contract:
+      path: '{trial.output_dir}/task_result.json'
+      scope: aggregate
+    writable_paths:
+    - '{paths.outputs}/newqe_charb_human_quality_test18_v1'
+  newqe_dataset_diagnostic_smoke:
+    executor: host
+    argv:
+    - '{runtime.python}'
+    - -B
+    - scripts/temp/20261126_newqe_dataset_diagnosis/diagnose_dataset.py
+    - --config
+    - '{trial.config}'
+    - --output
+    - '{trial.output_dir}/task_result.json'
+    timeout_seconds: 1800
+    max_output_gb: 2
+    network: deny
+    resources:
+      gpu_count: 1
+      gpu: 0
+    collectors:
+    - type: result_json
+      path: '{trial.output_dir}/task_result.json'
+    result_contract:
+      path: '{trial.output_dir}/task_result.json'
+      scope: smoke

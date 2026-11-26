@@ -221,3 +221,24 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Enhance for Human data and experiment artifacts
+__pycache__/
+*.pyc
+data/shared
+data/manifests/
+data/source_inventory.json
+runs/
+outputs/
+.research/.state/
+.env
+data/bundle.json
+data/bundle_verified.json
+*.mdb
+*.pt
+*.pth
+*.uploadinfo
+.ipynb_checkpoints/
+*.egg-info/
+build/
+dist/

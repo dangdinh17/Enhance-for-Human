@@ -1,0 +1,2 @@
+schema_version: "1.0"
+resources: {resources: {max_parallel_nodes: 1, stop_before_disk_full_gb: 100}}

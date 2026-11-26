@@ -1,0 +1,64 @@
+schema_version: '1.0'
+matrix: {}
+config_contract:
+  seed: seed
+  name: name
+  run_dir: run_dir
+allowed_change_scope:
+- seed
+- name
+- run_dir
+bindings:
+  name: '{trial.variant}_{trial.id}'
+  run_dir: '{trial.output_dir}/evaluation'
+dataset_manifests:
+- data/dataset_contract.json
+- data/source_inventory.json
+- runs/research/newqe_charb_300k_qp22_37_v1/QP22/DONE.json
+- runs/research/newqe_charb_300k_qp22_37_v1/QP27/DONE.json
+- runs/research/newqe_charb_300k_qp22_37_v1/QP32/DONE.json
+- runs/research/newqe_charb_300k_qp22_37_v1/QP37/DONE.json
+selection:
+  source_stage: smoke
+  mode: all
+campaign:
+  id: newqe_charb_human_quality_test18_v1
+  title: 'New QE only: mean delta PSNR-Y and SSIM-Y on test18, four QPs'
+variants:
+- id: qp22
+  seeds:
+  - 29
+  base_config: configs/newqe_human_quality/QP22.yml
+- id: qp27
+  seeds:
+  - 34
+  base_config: configs/newqe_human_quality/QP27.yml
+- id: qp32
+  seeds:
+  - 39
+  base_config: configs/newqe_human_quality/QP32.yml
+- id: qp37
+  seeds:
+  - 44
+  base_config: configs/newqe_human_quality/QP37.yml
+stages:
+  smoke: {}
+  main: {}
+pipeline:
+- id: preflight
+  kind: campaign
+  purpose: preparation
+  task: human_quality_verify
+- id: smoke
+  kind: trials
+  purpose: smoke
+  task: human_quality_smoke
+- id: main
+  kind: trials
+  purpose: evaluation
+  task: human_quality_evaluate
+  requires_approval: true
+- id: aggregate
+  kind: campaign
+  purpose: aggregate
+  task: human_quality_aggregate

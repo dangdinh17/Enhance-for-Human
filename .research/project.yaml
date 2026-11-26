@@ -1,0 +1,38 @@
+schema_version: '1.0'
+project:
+  id: enhance_for_human
+  title: Enhance for Human
+  domain: perceptual_video_quality_enhancement
+runtime:
+  python: python
+  environment:
+    PYTHONUNBUFFERED: '1'
+    OMP_NUM_THREADS: '2'
+    MKL_NUM_THREADS: '2'
+    OPENBLAS_NUM_THREADS: '2'
+    NUMEXPR_NUM_THREADS: '2'
+paths:
+  datasets: data
+  runs: runs/research
+  outputs: outputs/research
+  temp: /tmp/researchctl-enhance-for-human
+  required:
+  - data/bundle.json
+  - data/bundle_verified.json
+  - data/manifests
+  - data/shared/prepared/stdr_lmdb
+provenance:
+  include:
+  - src/**/*.py
+  - scripts/**/*.py
+  - configs/**/*.yml
+  - configs/**/*.cfg
+  - .agents/*.md
+  - AGENTS.md
+  - scripts/AGENTS.md
+  - data/manifests/*.json
+comet:
+  enabled: false
+  api_key_env: COMET_API_KEY
+  project_name: enhance-for-human
+  workspace: dangdinh17
