@@ -232,6 +232,8 @@ runs/
 outputs/
 .research/
 .env
+.comet.config
+*.comet-zip
 data/bundle.json
 data/bundle_verified.json
 *.mdb

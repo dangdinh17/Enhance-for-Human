@@ -1,7 +1,7 @@
 base_config: base.yml
-name: NewQE_Human_Kaggle_Charbonnier_QP22_300k_v1
+name: NewQE_Human_Kaggle_Charbonnier_QP22_Comet_300k_v1
 qp: 22
 seed: 29
-run_dir: runs/research/newqe_kaggle_charb_300k_v1/QP22
+run_dir: runs/research/newqe_kaggle_comet_charb_300k_v1/QP22
 dataset:
   manifests: [data/manifests/QP22.json]

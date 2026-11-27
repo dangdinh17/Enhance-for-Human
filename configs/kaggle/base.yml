@@ -4,4 +4,7 @@ dataset:
   bundle_receipt: data/bundle.json
   workers: 4
 comet_logging:
-  using: false
+  using: true
+  project_name: qe-for-human
+  workspace: dangdinh17
+  api_key_env: COMET_API_KEY

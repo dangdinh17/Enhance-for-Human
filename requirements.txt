@@ -8,3 +8,4 @@ PyYAML>=6,<7
 scipy>=1.11,<2
 scikit-image>=0.22,<1
 nbformat>=5.10,<6
+comet_ml>=3.58,<4

@@ -33,6 +33,13 @@ class TrainingBundleTests(unittest.TestCase):
             self.assertEqual(config["train"]["checkpoint_selection"],
                              {"metric": "enhanced_psnr", "mode": "max"})
             self.assertEqual(config["dataset"]["bundle_receipt"], "data/bundle.json")
+            self.assertTrue(config["comet_logging"]["using"])
+            self.assertEqual(config["comet_logging"]["project_name"], "qe-for-human")
+            self.assertEqual(config["comet_logging"]["workspace"], "dangdinh17")
+            self.assertEqual(config["comet_logging"]["api_key_env"], "COMET_API_KEY")
+            self.assertNotIn("api_key", config["comet_logging"])
+            self.assertEqual(config["run_dir"],
+                             f"runs/research/newqe_kaggle_comet_charb_300k_v1/QP{qp}")
 
     def test_verified_attachment_is_idempotent_and_samples_match(self) -> None:
         path = ROOT / "data/bundle.json"

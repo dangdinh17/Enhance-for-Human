@@ -30,6 +30,34 @@ on first use, reading approximately 73.70 GiB, then creates read-only data links
 LMDB data stays on Kaggle Input. Repeated bootstrap calls reuse verification
 while the bundle checksum and local file identities match.
 
+## Comet credentials
+
+Comet logs to [dangdinh17/qe-for-human](https://www.comet.com/dangdinh17/qe-for-human).
+`comet_ml` is installed by requirements.txt. Before training, add a Kaggle Secret
+named `COMET_API_KEY`, enable it for the notebook, then run this Python cell:
+
+```python
+import os
+from getpass import getpass
+from kaggle_secrets import UserSecretsClient
+
+try:
+    key = UserSecretsClient().get_secret("COMET_API_KEY")
+except Exception:
+    key = getpass("Comet API key: ")
+if not key or not key.strip():
+    raise ValueError("COMET_API_KEY is empty")
+os.environ["COMET_API_KEY"] = key.strip()
+del key
+```
+
+A separate experiment key is generated per run and saved in `comet.json` for
+resume. API keys are never embedded in source, notebook outputs or Git. Training
+logs loss, PSNR-Y, delta PSNR, gradient norm, AMP scale/retries and timing every
+100 updates; validation logs loss and PSNR every 2,000 updates. The startup
+prints the Comet experiment URL; `comet.json` records connection status.
+If the service fails, training continues with CSV logs and prints a warning.
+
 ## Train the selected QP
 
 Change only `QP` in the next cell:
@@ -58,7 +86,7 @@ crop size is 128, Adam LR is fixed at 1e-4, AMP retries the same batch up to
 8 times, and gradient clipping uses norm 1. Crops and augmentation are
 synchronized across all seven inputs and the target. Epoch sampling shuffles
 without replacement and drops incomplete batches. CSV logging is enabled;
-Comet is disabled in Kaggle configs.
+Comet is enabled in Kaggle configs for `dangdinh17/qe-for-human`.
 
 **Best checkpoint:** highest mean validation PSNR-Y (`enhanced_psnr/max`).
 All 540 validation samples are evaluated every 2,000 updates and at the end.
@@ -69,17 +97,19 @@ Training logs every 100 updates and saves `last.pt` every 1,000 updates.
 For QP22, outputs are under:
 
 ```text
-runs/research/newqe_kaggle_charb_300k_v1/QP22/
+runs/research/newqe_kaggle_comet_charb_300k_v1/QP22/
 ├── checkpoints/best.pth
 ├── checkpoints/last.pt
 ├── train.csv
 ├── validation.csv
+├── comet.json
 ├── config.resolved.yaml
 ├── STARTED.json
 └── DONE.json  # created only when all 300k updates finish
 ```
 
-Each other QP uses its own directory. Rerunning the same training command
+This Comet retraining version uses new run directories; previous runs are
+left intact. Each other QP uses its own directory. Rerunning the same training command
 resumes `last.pt` automatically, restoring model, optimizer, scaler, RNG,
 checkpoint selection and sampler position. Changed config/data/source is
 rejected. Stop gracefully to save the current state; abrupt termination loses

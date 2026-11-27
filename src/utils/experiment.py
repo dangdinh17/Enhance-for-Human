@@ -7,6 +7,7 @@ import fcntl
 import hashlib
 import json
 import os
+import uuid
 from contextlib import AbstractContextManager
 from pathlib import Path
 from typing import Any, Mapping
@@ -236,11 +237,32 @@ class CometMetricLogger:
         config: Mapping[str, Any],
         experiment_directory: Path,
     ) -> None:
-        self.config = config
+        self.config = copy.deepcopy(config)
         self.directory = experiment_directory
         self._experiment: Any = None
         self.enabled = False
         self._initialize()
+
+    def _resolve_key(self) -> None:
+        """Persist one generated experiment key per run, reused after resume."""
+        comet = self.config["comet_logging"]
+        path = self.directory / "comet.json"
+        saved = json.loads(path.read_text()) if path.is_file() else {}
+        previous = str(saved.get("experiment_key", ""))
+        configured = str(comet.get("experiment_key", ""))
+        if previous:
+            for field in ("project_name", "workspace"):
+                if saved.get(field) != str(comet.get(field, "")):
+                    raise ValueError(f"Comet resume {field} differs from this run")
+            if configured and configured != previous:
+                raise ValueError("Comet experiment key differs from this run")
+        key = configured or previous or uuid.uuid4().hex
+        if len(key) != 32 or any(char not in "0123456789abcdef" for char in key):
+            raise ValueError(
+                "Comet experiment key must be 32 lowercase hexadecimal characters"
+            )
+        comet["experiment_key"] = key
+        self._write_state("initializing")
 
     def _safe_error(self, error: Exception) -> str:
         text = str(error)
@@ -278,7 +300,18 @@ class CometMetricLogger:
         comet = self.config.get("comet_logging", {})
         if not isinstance(comet, Mapping) or not bool(comet.get("using", False)):
             return
+        self._resolve_key()
         try:
+            api_key = (
+                str(comet.get("api_key", ""))
+                or os.environ.get(str(comet.get("api_key_env", "COMET_API_KEY")), "")
+            )
+            online = bool(comet.get("online", True))
+            if online and not api_key:
+                raise ValueError(
+                    "Set COMET_API_KEY through Kaggle Secrets "
+                    "or the notebook key prompt"
+                )
             import comet_ml
 
             # Only values explicitly logged below belong to the experiment.  In
@@ -302,22 +335,23 @@ class CometMetricLogger:
                 auto_param_logging=False,
                 auto_metric_logging=False,
                 auto_log_co2=False,
+                offline_directory=str(self.directory / "comet-offline"),
             )
             self._experiment = comet_ml.start(
-                api_key=(
-                    str(comet.get("api_key", ""))
-                    or os.environ[str(comet.get("api_key_env", "COMET_API_KEY"))]
-                ),
+                api_key=api_key or None,
                 project_name=str(comet["project_name"]),
                 workspace=str(comet["workspace"]),
                 experiment_key=str(comet["experiment_key"]),
                 mode="get_or_create",
+                online=online,
                 experiment_config=comet_experiment_config,
             )
             self._experiment.set_name(str(self.config.get("experiment", {"name": self.config.get("name", "NewQE")})["name"]))
             self._experiment.log_parameters(redact_secrets(self.config))
             self.enabled = True
             self._write_state("active")
+            if online:
+                print(f"Comet: {self._experiment.get_url()}", flush=True)
         except Exception as error:  # Comet failures must not stop GPU training.
             safe_error = self._safe_error(error)
             print(f"Warning: Comet disabled: {safe_error}", flush=True)
