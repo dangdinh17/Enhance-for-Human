@@ -34,21 +34,15 @@ while the bundle checksum and local file identities match.
 
 Comet logs to [dangdinh17/qe-for-human](https://www.comet.com/dangdinh17/qe-for-human).
 `comet_ml` is installed by requirements.txt. Before training, add a Kaggle Secret
-named `COMET_API_KEY`, enable it for the notebook, then run this Python cell:
+named `COMET_API_KEY`, enable it once for the notebook, then run this Python
+cell. It loads the key automatically without an input prompt:
 
 ```python
 import os
-from getpass import getpass
 from kaggle_secrets import UserSecretsClient
 
-try:
-    key = UserSecretsClient().get_secret("COMET_API_KEY")
-except Exception:
-    key = getpass("Comet API key: ")
-if not key or not key.strip():
-    raise ValueError("COMET_API_KEY is empty")
-os.environ["COMET_API_KEY"] = key.strip()
-del key
+if not os.environ.get("COMET_API_KEY"):
+    os.environ["COMET_API_KEY"] = UserSecretsClient().get_secret("COMET_API_KEY").strip()
 ```
 
 A separate experiment key is generated per run and saved in `comet.json` for
